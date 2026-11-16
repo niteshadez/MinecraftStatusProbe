@@ -1,0 +1,20 @@
+# CMake build output
+/cmake-build-*/
+/build/
+/out/
+
+# Installer output and runtime results
+/installer_output/
+/matches.txt
+
+# IDE and editor files
+/.idea/
+/.vscode/
+
+# Compiled artifacts
+*.exe
+*.dll
+*.obj
+*.o
+*.lib
+*.pdb

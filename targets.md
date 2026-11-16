@@ -1,0 +1,3 @@
+# Local development endpoints only
+127.0.0.1:25565
+127.0.0.1:25684
