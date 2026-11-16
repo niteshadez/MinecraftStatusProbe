@@ -13,7 +13,8 @@
 #include "mcprobe/slp.hpp"
 #include "mcprobe/gui.hpp"
 
-// Helper to resolve a writable path in %APPDATA%\MinecraftStatusProbe
+bool isServerWhitelisted(const std::string& host, int port);
+
 std::filesystem::path getConfigFilePath(const std::string& filename) {
     char path[MAX_PATH];
     if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, path))) {
@@ -21,7 +22,7 @@ std::filesystem::path getConfigFilePath(const std::string& filename) {
         std::filesystem::create_directories(dir);
         return dir / filename;
     }
-    return filename; // Fallback
+    return filename;
 }
 
 std::string trimString(const std::string& str) {
@@ -31,7 +32,6 @@ std::string trimString(const std::string& str) {
     return str.substr(first, (last - first + 1));
 }
 
-// Load saved configuration from AppData on startup
 void loadSavedConfig(std::string& rawEndpoints, std::string& rawPlayers) {
     auto tPath = getConfigFilePath("targets.md");
     auto pPath = getConfigFilePath("players.md");
@@ -55,7 +55,6 @@ void loadSavedConfig(std::string& rawEndpoints, std::string& rawPlayers) {
     }
 }
 
-// Save configuration back to AppData when closing or running
 void saveCurrentConfig(const std::string& rawEndpoints, const std::string& rawPlayers) {
     auto tPath = getConfigFilePath("targets.md");
     auto pPath = getConfigFilePath("players.md");
@@ -85,7 +84,6 @@ int main(int argc, char* argv[]) {
     std::mutex dataMutex;
     std::mutex logMutex;
 
-    // Load any previously saved settings from AppData
     loadSavedConfig(rawEndpoints, rawPlayers);
 
     std::thread backgroundWorker([&]() {
@@ -100,7 +98,6 @@ int main(int argc, char* argv[]) {
                     localPlayers = rawPlayers;
                 }
 
-                // Automatically save state upon running a scan
                 saveCurrentConfig(localEndpoints, localPlayers);
 
                 std::vector<std::string> targetPlayers;
@@ -169,14 +166,25 @@ int main(int argc, char* argv[]) {
                             std::lock_guard<std::mutex> lock(logMutex);
                             AppendTextToLog(hEditLog, "[+] Player Match Found: " + epStr + " (Target: " + result + ")");
                         } else if (result == "ONLINE_ONLY") {
-                            std::lock_guard<std::mutex> lock(logMutex);
-                            AppendTextToLog(hEditLog, "[*] Online Server (No Target Match): " + epStr);
+                            if (isServerWhitelisted(ip, port)) {
+                                std::lock_guard<std::mutex> lock(logMutex);
+                                AppendTextToLog(hEditLog, "[*] Whitelisted Server found: " + epStr);
+                            } else {
+                                std::lock_guard<std::mutex> lock(logMutex);
+                                AppendTextToLog(hEditLog, "[*] Online Server (No Target Match): " + epStr);
+                            }
                         } else if (result == "UNREACHABLE") {
                             std::lock_guard<std::mutex> lock(logMutex);
                             AppendTextToLog(hEditLog, "[!] Unable to be reached: " + epStr);
                         } else {
-                            std::lock_guard<std::mutex> lock(logMutex);
-                            AppendTextToLog(hEditLog, "[-] Offline: " + epStr);
+                            // Status ping failed or was blocked. Check if the port is an active whitelisted server.
+                            if (isServerWhitelisted(ip, port)) {
+                                std::lock_guard<std::mutex> lock(logMutex);
+                                AppendTextToLog(hEditLog, "[*] Whitelisted Server found: " + epStr);
+                            } else {
+                                std::lock_guard<std::mutex> lock(logMutex);
+                                AppendTextToLog(hEditLog, "[-] Offline: " + epStr);
+                            }
                         }
                     });
                 }
@@ -193,7 +201,6 @@ int main(int argc, char* argv[]) {
 
     launchGuiApp(isRunning, triggerScan, rawEndpoints, rawPlayers, dataMutex);
 
-    // Save final state on clean exit
     {
         std::lock_guard<std::mutex> lock(dataMutex);
         saveCurrentConfig(rawEndpoints, rawPlayers);

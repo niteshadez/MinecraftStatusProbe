@@ -114,12 +114,13 @@ static void InitializeLegendColors(HWND hLegend) {
     };
 
     std::vector<LegendItem> items = {
-        { L"● Match ", RGB(218, 165, 32) },     // Gold
-        { L"● Online ", RGB(0, 160, 0) },       // Green
-        { L"● Unreachable ", RGB(0, 100, 255) },// Blue
-        { L"● Offline ", RGB(220, 40, 40) },    // Red
-        { L"● No Server ", RGB(139, 69, 19) },  // Brown
-        { L"● Checking ", RGB(120, 120, 120) }  // Gray
+        { L"● Match & Whitelist ", RGB(255, 24, 140) }, // Pink
+        { L"● Match ", RGB(31, 246, 246) },             // Cyan/Teal
+        { L"● Whitelist ", RGB(255, 140, 0) },          // Orange
+        { L"● Online ", RGB(0, 160, 0) },               // Green
+        { L"● Unreachable ", RGB(0, 100, 255) },        // Blue
+        { L"● Offline ", RGB(220, 40, 40) },            // Red
+        { L"● No Server ", RGB(139, 69, 19) }           // Brown
     };
 
     for (const auto& item : items) {
@@ -142,18 +143,22 @@ static void ExecuteAppendLog(HWND hEdit, const std::string& text) {
     SendMessageW(hEdit, EM_SETSEL, (WPARAM)-1, (LPARAM)-1);
 
     COLORREF textColor = RGB(50, 50, 50);
-    if (text.find("[+]") != std::string::npos) {
-        textColor = RGB(218, 165, 32);
+    if (text.find("Whitelisted Player Match") != std::string::npos || text.find("Match & Whitelist") != std::string::npos) {
+        textColor = RGB(255, 24, 140);    // Pink for Match & Whitelist
+    } else if (text.find("[+]") != std::string::npos) {
+        textColor = RGB(31, 246, 246);    // Cyan/Teal for Match
+    } else if (text.find("Whitelisted") != std::string::npos || text.find("Whitelist") != std::string::npos) {
+        textColor = RGB(255, 140, 0);     // Orange for Whitelisted
     } else if (text.find("Online Server") != std::string::npos || text.find("Scan complete") != std::string::npos) {
-        textColor = RGB(0, 160, 0);
+        textColor = RGB(0, 160, 0);       // Green for Online
     } else if (text.find("[!]") != std::string::npos || text.find("Unreachable") != std::string::npos) {
-        textColor = RGB(0, 100, 255);
+        textColor = RGB(0, 100, 255);     // Blue for Unreachable
     } else if (text.find("[-]") != std::string::npos || text.find("Offline") != std::string::npos) {
-        textColor = RGB(220, 40, 40);
+        textColor = RGB(220, 40, 40);     // Red for Offline
     } else if (text.find("No server") != std::string::npos || text.find("no server") != std::string::npos) {
-        textColor = RGB(139, 69, 19);
+        textColor = RGB(139, 69, 19);     // Brown for No server
     } else if (text.find("[>]") != std::string::npos) {
-        textColor = RGB(120, 120, 120);
+        textColor = RGB(120, 120, 120);   // Gray for Checking
     }
 
     CHARFORMAT2W cf = {0};
@@ -184,16 +189,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             std::string defaultIps = loadFileContent("targets.md", "");
             std::string defaultPlayers = loadFileContent("players.md", "");
 
-            hLblIps = CreateWindowW(L"STATIC", L"Endpoints / IP List (from targets.md):", WS_VISIBLE | WS_CHILD, 20, 15, 280, 20, hwnd, NULL, NULL, NULL);
-            hEditIps = CreateWindowW(L"EDIT", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, 20, 40, 280, 130, hwnd, (HMENU)ID_EDIT_IPS, NULL, NULL);
+            hLblIps = CreateWindowW(L"STATIC", L"Endpoints / IP List (from targets.md):", WS_VISIBLE | WS_CHILD, 20, 15, 310, 20, hwnd, NULL, NULL, NULL);
+            hEditIps = CreateWindowW(L"EDIT", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, 20, 40, 310, 130, hwnd, (HMENU)ID_EDIT_IPS, NULL, NULL);
 
             int countIps = MultiByteToWideChar(CP_UTF8, 0, defaultIps.c_str(), -1, NULL, 0);
             std::wstring wIps(countIps, 0);
             MultiByteToWideChar(CP_UTF8, 0, defaultIps.c_str(), -1, &wIps[0], countIps);
             SetWindowTextW(hEditIps, wIps.c_str());
 
-            hLblPly = CreateWindowW(L"STATIC", L"Target Players (from players.md):", WS_VISIBLE | WS_CHILD, 320, 15, 280, 20, hwnd, NULL, NULL, NULL);
-            hEditPly = CreateWindowW(L"EDIT", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, 320, 40, 280, 130, hwnd, (HMENU)ID_EDIT_PLY, NULL, NULL);
+            hLblPly = CreateWindowW(L"STATIC", L"Target Players (from players.md):", WS_VISIBLE | WS_CHILD, 350, 15, 310, 20, hwnd, NULL, NULL, NULL);
+            hEditPly = CreateWindowW(L"EDIT", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL, 350, 40, 310, 130, hwnd, (HMENU)ID_EDIT_PLY, NULL, NULL);
 
             int countPly = MultiByteToWideChar(CP_UTF8, 0, defaultPlayers.c_str(), -1, NULL, 0);
             std::wstring wPly(countPly, 0);
@@ -203,28 +208,28 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             hBtnStart = CreateWindowW(L"BUTTON", L"START SCAN", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 180, 110, 30, hwnd, (HMENU)ID_BTN_START, NULL, NULL);
             hBtnStop  = CreateWindowW(L"BUTTON", L"STOP SCAN", WS_VISIBLE | WS_CHILD, 135, 180, 110, 30, hwnd, (HMENU)ID_BTN_STOP, NULL, NULL);
 
-            hEditLegend = CreateWindowW(L"RICHEDIT50W", L"", WS_VISIBLE | WS_CHILD | ES_READONLY | ES_CENTER, 255, 183, 495, 25, hwnd, (HMENU)ID_EDIT_LEGEND, NULL, NULL);
+            hEditLegend = CreateWindowW(L"RICHEDIT50W", L"", WS_VISIBLE | WS_CHILD | ES_READONLY | ES_CENTER, 250, 183, 560, 25, hwnd, (HMENU)ID_EDIT_LEGEND, NULL, NULL);
             SendMessageW(hEditLegend, EM_SETBKGNDCOLOR, 0, RGB(240, 240, 240));
             InitializeLegendColors(hEditLegend);
 
-            hDump     = CreateWindowW(L"BUTTON", L"Dump to matches.txt", WS_VISIBLE | WS_CHILD, 745, 178, 175, 28, hwnd, (HMENU)ID_BTN_DUMP, NULL, NULL);
+            hDump     = CreateWindowW(L"BUTTON", L"Dump to matches.txt", WS_VISIBLE | WS_CHILD, 820, 178, 175, 28, hwnd, (HMENU)ID_BTN_DUMP, NULL, NULL);
 
-            hLblPath  = CreateWindowW(L"STATIC", L"Export:", WS_VISIBLE | WS_CHILD, 460, 215, 55, 20, hwnd, NULL, NULL, NULL);
-            hEditPath = CreateWindowW(L"EDIT", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 520, 212, 320, 24, hwnd, (HMENU)ID_EDIT_PATH, NULL, NULL);
-            hBtnBrowse = CreateWindowW(L"BUTTON", L"Browse...", WS_VISIBLE | WS_CHILD, 848, 212, 72, 24, hwnd, (HMENU)ID_BTN_BROWSE, NULL, NULL);
+            hLblPath  = CreateWindowW(L"STATIC", L"Export:", WS_VISIBLE | WS_CHILD, 530, 215, 55, 20, hwnd, NULL, NULL, NULL);
+            hEditPath = CreateWindowW(L"EDIT", L"", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 590, 212, 320, 24, hwnd, (HMENU)ID_EDIT_PATH, NULL, NULL);
+            hBtnBrowse = CreateWindowW(L"BUTTON", L"Browse...", WS_VISIBLE | WS_CHILD, 918, 212, 72, 24, hwnd, (HMENU)ID_BTN_BROWSE, NULL, NULL);
 
             std::wstring savedPath = loadExportPathConfig();
             SetWindowTextW(hEditPath, savedPath.c_str());
 
             hLblLog = CreateWindowW(L"STATIC", L"Live Output & Results:", WS_VISIBLE | WS_CHILD, 20, 245, 250, 20, hwnd, NULL, NULL, NULL);
-            hEditLog = CreateWindowW(L"RICHEDIT50W", L"[*] Ready to scan...\r\n", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | ES_READONLY, 20, 270, 900, 370, hwnd, (HMENU)ID_EDIT_LOG, NULL, NULL);
+            hEditLog = CreateWindowW(L"RICHEDIT50W", L"[*] Ready to scan...\r\n", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL | ES_READONLY, 20, 270, 970, 370, hwnd, (HMENU)ID_EDIT_LOG, NULL, NULL);
             break;
         }
         case WM_SIZE: {
             int width = LOWORD(lParam);
             int height = HIWORD(lParam);
 
-            if (width < 450 || height < 300) break;
+            if (width < 500 || height < 300) break;
 
             int halfWidth = (width - 60) / 2;
             int topEditHeight = 130;
@@ -246,7 +251,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             int legendWidth = width - 440;
             if (legendWidth < 200) legendWidth = 200;
-            MoveWindow(hEditLegend, 255, 183, legendWidth, 25, TRUE);
+            MoveWindow(hEditLegend, 250, 183, legendWidth, 25, TRUE);
 
             MoveWindow(hLblLog, 20, 245, 250, 20, TRUE);
             int logHeight = height - 285;
@@ -331,7 +336,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 std::filesystem::create_directories(targetDir);
                 std::filesystem::path dumpPath = targetDir / "matches.txt";
 
-                // Open with std::ios::app to append new matches instead of overwriting
                 std::ofstream dump(dumpPath, std::ios::app);
                 if (!dump.is_open()) {
                     MessageBoxW(hwnd, L"Failed to create matches.txt in the specified directory. Check permissions!", L"Error", MB_OK | MB_ICONERROR);
@@ -348,10 +352,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                     }
 
                     std::string targetEntry = "";
-                    if (line.find("[+] Player Match Found:") != std::string::npos) {
+                    if (line.find("[+] Whitelisted Player Match Found:") != std::string::npos || line.find("[+] Player Match Found:") != std::string::npos) {
                         size_t pos = line.find(": ");
                         if (pos != std::string::npos) {
                             targetEntry = line.substr(pos + 2);
+                        }
+                    } else if (line.find("Whitelisted") != std::string::npos || line.find("Whitelist") != std::string::npos) {
+                        size_t pos = line.find(": ");
+                        if (pos != std::string::npos) {
+                            targetEntry = line.substr(pos + 2) + " (Whitelisted)";
                         }
                     } else if (line.find("[*] Online Server (No Target Match):") != std::string::npos) {
                         size_t pos = line.find(": ");
@@ -408,7 +417,7 @@ void launchGuiApp(std::atomic<bool>& isRunning, std::atomic<bool>& startScan, st
     HWND hwnd = CreateWindowExW(
         0, L"MinecraftProbeClass", L"Minecraft Server & Player Probe",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        CW_USEDEFAULT, CW_USEDEFAULT, 940, 700,
+        CW_USEDEFAULT, CW_USEDEFAULT, 1020, 700, // Updated default width to 1020 to fit all legend items perfectly
         NULL, NULL, hInstance, NULL
     );
 

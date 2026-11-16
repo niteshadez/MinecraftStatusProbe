@@ -20,21 +20,23 @@ Always break large scanning lists into manageable chunks or maintain moderate pa
 KEY FEATURES
 --------------------------------------------------------------------------------
 
-- Responsive Win32 GUI: Features a modern, resizable interface initialized at a default size of 940x700 pixels.
+- Responsive Win32 GUI: Features a modern, resizable interface initialized at a default size of 1020x700 pixels with robust layout handling.
 - Multi-Threaded Scanning Engine: Utilizes asynchronous background worker pools to check dozens of endpoints concurrently without blocking or freezing the interface.
+- Advanced Whitelist & Gatekeeper Detection: Performs automated secondary login handshakes (Protocol 767) to accurately identify and flag active whitelisted or restricted servers—even when public status pings are blocked.
 - Color-Coded Status Logs: Built on top of RICHEDIT50W controls with per-character formatting to give you instant visual distinction.
-- Data Persistence: Loads initial endpoints and target player lists from external files and allows one-click exporting of successful results to matches.txt.
+- Data Persistence & Export: Loads initial endpoints and target player lists from external files, saves user preferences under %APPDATA%, and allows one-click exporting of successful matches and whitelisted servers to matches.txt.
 
 --------------------------------------------------------------------------------
 COLOR CODE LEGEND
 --------------------------------------------------------------------------------
 
-- Match: Target player match found on the server.
-- Green - Online: Server is online.
+- Pink (RGB 255, 24, 140) - Match & Whitelist: Target player match found on an active whitelisted server.
+- Cyan/Teal (RGB 31, 246, 246) - Match: Target player match found on a public server.
+- Orange - Whitelist: Server is online and protected behind an active whitelist or restriction gate.
+- Green - Online: Server is public and online.
 - Blue - Unreachable: Server is unreachable (network timeout / unreachable address).
 - Red - Offline: Server is offline / refused connection.
 - Brown - No Server: No server running on the target port.
-- Gray - Checking: Actively checking endpoint.
 
 --------------------------------------------------------------------------------
 CONFIGURATION FILES
