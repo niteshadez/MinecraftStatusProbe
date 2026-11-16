@@ -417,7 +417,7 @@ void launchGuiApp(std::atomic<bool>& isRunning, std::atomic<bool>& startScan, st
     HWND hwnd = CreateWindowExW(
         0, L"MinecraftProbeClass", L"Minecraft Server & Player Probe",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        CW_USEDEFAULT, CW_USEDEFAULT, 1020, 700, // Updated default width to 1020 to fit all legend items perfectly
+        CW_USEDEFAULT, CW_USEDEFAULT, 1020, 700,
         NULL, NULL, hInstance, NULL
     );
 

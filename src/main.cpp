@@ -142,6 +142,11 @@ int main(int argc, char* argv[]) {
                     AppendTextToLog(hEditLog, "[*] Scanning " + std::to_string(endpoints.size()) + " valid endpoints for " + std::to_string(targetPlayers.size()) + " target players...");
                 }
 
+                std::atomic<int> onlineServersCount(0);
+                std::atomic<int> whitelistedServersCount(0);
+                std::atomic<int> playerMatchesCount(0);
+                std::atomic<int> whitelistedPlayerMatchesCount(0);
+
                 const size_t maxThreads = 32;
                 std::vector<std::jthread> pool;
 
@@ -151,7 +156,8 @@ int main(int argc, char* argv[]) {
                         pool.clear();
                     }
 
-                    pool.emplace_back([ip = ep.ip, port = ep.port, &targetPlayers, &isRunning, &logMutex]() {
+                    pool.emplace_back([ip = ep.ip, port = ep.port, &targetPlayers, &isRunning, &logMutex,
+                                       &onlineServersCount, &whitelistedServersCount, &playerMatchesCount, &whitelistedPlayerMatchesCount]() {
                         if (!isRunning) return;
 
                         std::string epStr = ip + ":" + std::to_string(port);
@@ -163,13 +169,22 @@ int main(int argc, char* argv[]) {
                         std::string result = queryMinecraftServer(ip, port, targetPlayers);
 
                         if (!result.empty() && result != "ONLINE_ONLY" && result != "UNREACHABLE") {
-                            std::lock_guard<std::mutex> lock(logMutex);
-                            AppendTextToLog(hEditLog, "[+] Player Match Found: " + epStr + " (Target: " + result + ")");
+                            if (isServerWhitelisted(ip, port)) {
+                                whitelistedPlayerMatchesCount.fetch_add(1);
+                                std::lock_guard<std::mutex> lock(logMutex);
+                                AppendTextToLog(hEditLog, "[+] Whitelisted Player Match Found: " + epStr + " (Target: " + result + ")");
+                            } else {
+                                playerMatchesCount.fetch_add(1);
+                                std::lock_guard<std::mutex> lock(logMutex);
+                                AppendTextToLog(hEditLog, "[+] Player Match Found: " + epStr + " (Target: " + result + ")");
+                            }
                         } else if (result == "ONLINE_ONLY") {
                             if (isServerWhitelisted(ip, port)) {
+                                whitelistedServersCount.fetch_add(1);
                                 std::lock_guard<std::mutex> lock(logMutex);
                                 AppendTextToLog(hEditLog, "[*] Whitelisted Server found: " + epStr);
                             } else {
+                                onlineServersCount.fetch_add(1);
                                 std::lock_guard<std::mutex> lock(logMutex);
                                 AppendTextToLog(hEditLog, "[*] Online Server (No Target Match): " + epStr);
                             }
@@ -177,8 +192,8 @@ int main(int argc, char* argv[]) {
                             std::lock_guard<std::mutex> lock(logMutex);
                             AppendTextToLog(hEditLog, "[!] Unable to be reached: " + epStr);
                         } else {
-                            // Status ping failed or was blocked. Check if the port is an active whitelisted server.
                             if (isServerWhitelisted(ip, port)) {
+                                whitelistedServersCount.fetch_add(1);
                                 std::lock_guard<std::mutex> lock(logMutex);
                                 AppendTextToLog(hEditLog, "[*] Whitelisted Server found: " + epStr);
                             } else {
@@ -190,9 +205,20 @@ int main(int argc, char* argv[]) {
                 }
                 pool.clear();
 
+                // Build summary string in exact requested format
+                int online = onlineServersCount.load();
+                int whitelist = whitelistedServersCount.load();
+                int matches = playerMatchesCount.load();
+                int whiteMatches = whitelistedPlayerMatchesCount.load();
+
+                std::string summary = std::to_string(online) + (online == 1 ? " Online server found, " : " Online servers found, ") +
+                                      std::to_string(whitelist) + (whitelist == 1 ? " Whitelisted server, " : " Whitelisted servers, ") +
+                                      std::to_string(matches) + (matches == 1 ? " Player match, and " : " Player matches, and ") +
+                                      std::to_string(whiteMatches) + (whiteMatches == 1 ? " Whitelisted player match found." : " Whitelisted player matches found.");
+
                 {
                     std::lock_guard<std::mutex> lock(logMutex);
-                    AppendTextToLog(hEditLog, "[*] Scan complete!");
+                    AppendTextToLog(hEditLog, "[*] Scan complete! " + summary);
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
